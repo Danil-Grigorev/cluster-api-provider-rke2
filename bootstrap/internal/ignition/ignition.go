@@ -18,9 +18,10 @@ package ignition
 import (
 	"fmt"
 
-	bootstrapv1 "github.com/rancher-sandbox/cluster-api-provider-rke2/bootstrap/api/v1alpha2"
 	"github.com/rancher-sandbox/cluster-api-provider-rke2/bootstrap/internal/cloudinit"
 	"github.com/rancher-sandbox/cluster-api-provider-rke2/bootstrap/internal/ignition/butane"
+
+	ignitionTypes "github.com/coreos/ignition/v2/config/v3_3/types"
 )
 
 const (
@@ -46,14 +47,14 @@ var (
 type JoinWorkerInput struct {
 	*cloudinit.BaseUserData
 
-	AdditionalIgnition *bootstrapv1.AdditionalUserData
+	Ignition ignitionTypes.Config
 }
 
 // ControlPlaneInput defines the context to generate a controlplane instance user data.
 type ControlPlaneInput struct {
 	*cloudinit.ControlPlaneInput
 
-	AdditionalIgnition *bootstrapv1.AdditionalUserData
+	Ignition ignitionTypes.Config
 }
 
 // NewJoinWorker returns Ignition configuration for new worker node joining the cluster.
@@ -74,7 +75,7 @@ func NewJoinWorker(input *JoinWorkerInput) ([]byte, error) {
 	input.DeployRKE2Commands = deployRKE2Command
 	input.WriteFiles = append(input.WriteFiles, input.ConfigFile)
 
-	return render(input.BaseUserData, input.AdditionalIgnition)
+	return butane.Render(input.BaseUserData, input.Ignition)
 }
 
 // NewJoinControlPlane returns Ignition configuration for new controlplane node joining the cluster.
@@ -84,7 +85,7 @@ func NewJoinControlPlane(input *ControlPlaneInput) ([]byte, error) {
 		return nil, fmt.Errorf("failed to process controlplane input: %w", err)
 	}
 
-	return render(&processedInput.BaseUserData, processedInput.AdditionalIgnition)
+	return butane.Render(&processedInput.BaseUserData, input.Ignition)
 }
 
 // NewInitControlPlane returns Ignition configuration for bootstrapping new cluster.
@@ -94,7 +95,7 @@ func NewInitControlPlane(input *ControlPlaneInput) ([]byte, error) {
 		return nil, fmt.Errorf("failed to process controlplane input: %w", err)
 	}
 
-	return render(&processedInput.BaseUserData, processedInput.AdditionalIgnition)
+	return butane.Render(&processedInput.BaseUserData, input.Ignition)
 }
 
 func controlPlaneConfigInput(input *ControlPlaneInput) (*ControlPlaneInput, error) {
@@ -116,15 +117,6 @@ func controlPlaneConfigInput(input *ControlPlaneInput) (*ControlPlaneInput, erro
 	input.WriteFiles = append(input.WriteFiles, input.ConfigFile)
 
 	return input, nil
-}
-
-func render(input *cloudinit.BaseUserData, ignitionConfig *bootstrapv1.AdditionalUserData) ([]byte, error) {
-	additionalButaneConfig := &bootstrapv1.AdditionalUserData{}
-	if ignitionConfig != nil && ignitionConfig.Config != "" {
-		additionalButaneConfig = ignitionConfig
-	}
-
-	return butane.Render(input, additionalButaneConfig)
 }
 
 func getControlPlaneRKE2Commands(baseUserData *cloudinit.BaseUserData) ([]string, error) {

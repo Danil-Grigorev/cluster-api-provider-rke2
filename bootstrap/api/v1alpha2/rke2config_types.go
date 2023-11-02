@@ -32,7 +32,7 @@ const (
 	CloudConfig Format = "cloud-config"
 
 	// Ignition make the bootstrap data to be of Ignition format.
-	Ignition Format = "ignition"
+	IgnitionConfig Format = "ignition"
 )
 
 // RKE2ConfigSpec defines the desired state of RKE2Config.
@@ -154,10 +154,6 @@ type RKE2AgentConfig struct {
 	// basically supposing that online container registries and RKE2 install scripts are not reachable.
 	AirGapped bool `json:"airGapped,omitempty"`
 
-	// Format specifies the output format of the bootstrap data. Defaults to cloud-config.
-	// +optional
-	Format Format `json:"format,omitempty"`
-
 	// AdditionalUserData is a field that allows users to specify additional cloud-init or ignition configuration to be included in the
 	// generated cloud-init/ignition script.
 	//+optional
@@ -166,14 +162,17 @@ type RKE2AgentConfig struct {
 
 // AdditionalUserData is a field that allows users to specify additional cloud-init configuration .
 type AdditionalUserData struct {
+	// Format specifies the output format of the bootstrap data. Defaults to cloud-config.
+	// +optional
+	Format Format `json:"format,omitempty"`
+
 	// In case of using ignition, the data format is documented here: https://kinvolk.io/docs/flatcar-container-linux/latest/provisioning/cl-config/
 	// NOTE: All fields of the UserData that are managed by the RKE2Config controller will be ignored, this include "write_files", "runcmd", "ntp".
 	// +optional
-	Config string `json:"config,omitempty"`
+	Ignition *Config `json:"config,omitempty"`
 
-	// Strict controls if Config should be strictly parsed. If so, warnings are treated as errors.
 	// +optional
-	Strict bool `json:"strict,omitempty"`
+	CloudInit string `json:"cloudInit,omitempty"`
 }
 
 // NTP defines input for generated ntp in cloud-init.

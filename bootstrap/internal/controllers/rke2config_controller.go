@@ -410,18 +410,18 @@ func (r *RKE2ConfigReconciler) handleClusterNotInitialized(ctx context.Context, 
 			RKE2Version:         scope.Config.Spec.AgentConfig.Version,
 			WriteFiles:          files,
 			NTPServers:          ntpServers,
-			AdditionalCloudInit: scope.Config.Spec.AgentConfig.AdditionalUserData.Config,
+			AdditionalCloudInit: scope.Config.Spec.AgentConfig.AdditionalUserData.CloudInit,
 		},
 		Certificates: certificates,
 	}
 
 	var userData []byte
 
-	switch scope.Config.Spec.AgentConfig.Format {
+	switch scope.Config.Spec.AgentConfig.AdditionalUserData.Format {
 	case bootstrapv1.Ignition:
 		userData, err = ignition.NewInitControlPlane(&ignition.ControlPlaneInput{
-			ControlPlaneInput:  cpinput,
-			AdditionalIgnition: &scope.Config.Spec.AgentConfig.AdditionalUserData,
+			ControlPlaneInput: cpinput,
+			Ignition:          *scope.Config.Spec.AgentConfig.AdditionalUserData.Ignition,
 		})
 	default:
 		userData, err = cloudinit.NewInitControlPlane(cpinput)
@@ -591,7 +591,7 @@ func (r *RKE2ConfigReconciler) joinControlplane(ctx context.Context, scope *Scop
 			RKE2Version:         scope.Config.Spec.AgentConfig.Version,
 			WriteFiles:          files,
 			NTPServers:          ntpServers,
-			AdditionalCloudInit: scope.Config.Spec.AgentConfig.AdditionalUserData.Config,
+			AdditionalCloudInit: scope.Config.Spec.AgentConfig.AdditionalUserData.CloudInit,
 		},
 	}
 
@@ -601,11 +601,11 @@ func (r *RKE2ConfigReconciler) joinControlplane(ctx context.Context, scope *Scop
 
 	var userData []byte
 
-	switch scope.Config.Spec.AgentConfig.Format {
+	switch scope.Config.Spec.AgentConfig.AdditionalUserData.Format {
 	case bootstrapv1.Ignition:
 		userData, err = ignition.NewJoinControlPlane(&ignition.ControlPlaneInput{
-			ControlPlaneInput:  cpinput,
-			AdditionalIgnition: &scope.Config.Spec.AgentConfig.AdditionalUserData,
+			ControlPlaneInput: cpinput,
+			Ignition:          *scope.Config.Spec.AgentConfig.AdditionalUserData.Ignition,
 		})
 	default:
 		userData, err = cloudinit.NewJoinControlPlane(cpinput)
@@ -702,16 +702,16 @@ func (r *RKE2ConfigReconciler) joinWorker(ctx context.Context, scope *Scope) (re
 		RKE2Version:         scope.Config.Spec.AgentConfig.Version,
 		WriteFiles:          files,
 		NTPServers:          ntpServers,
-		AdditionalCloudInit: scope.Config.Spec.AgentConfig.AdditionalUserData.Config,
+		AdditionalCloudInit: scope.Config.Spec.AgentConfig.AdditionalUserData.CloudInit,
 	}
 
 	var userData []byte
 
-	switch scope.Config.Spec.AgentConfig.Format {
+	switch scope.Config.Spec.AgentConfig.AdditionalUserData.Format {
 	case bootstrapv1.Ignition:
 		userData, err = ignition.NewJoinWorker(&ignition.JoinWorkerInput{
-			BaseUserData:       wkInput,
-			AdditionalIgnition: &scope.Config.Spec.AgentConfig.AdditionalUserData,
+			BaseUserData: wkInput,
+			Ignition:     *scope.Config.Spec.AgentConfig.AdditionalUserData.Ignition,
 		})
 	default:
 		userData, err = cloudinit.NewJoinWorker(wkInput)
@@ -789,7 +789,7 @@ func (r *RKE2ConfigReconciler) storeBootstrapData(ctx context.Context, scope *Sc
 		},
 		Data: map[string][]byte{
 			"value":  data,
-			"format": []byte(scope.Config.Spec.AgentConfig.Format),
+			"format": []byte(scope.Config.Spec.AgentConfig.AdditionalUserData.Format),
 		},
 		Type: clusterv1.ClusterSecretType,
 	}

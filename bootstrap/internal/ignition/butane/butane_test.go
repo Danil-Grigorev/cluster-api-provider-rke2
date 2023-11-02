@@ -23,6 +23,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/coreos/butane/config/common"
+	fcos "github.com/coreos/butane/config/fcos/v1_4"
 	ignition "github.com/coreos/ignition/v2/config/v3_3"
 
 	"k8s.io/utils/pointer"
@@ -59,6 +61,11 @@ var _ = Describe("Render", func() {
 	)
 
 	BeforeEach(func() {
+		ignBytes, _, err := fcos.ToIgn3_3Bytes([]byte(additionalIgnition), common.TranslateBytesOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		ign, _, err := ignition.Parse(ignBytes)
+		Expect(err).ToNot(HaveOccurred())
+
 		input = &cloudinit.BaseUserData{
 			PreRKE2Commands: []string{
 				"echo 'test'",
@@ -90,13 +97,12 @@ var _ = Describe("Render", func() {
 			},
 		}
 		additionalConfig = &bootstrapv1.AdditionalUserData{
-			Config: additionalIgnition,
-			Strict: true,
+			Ignition: &ign,
 		}
 	})
 
 	It("should render a valid ignition config", func() {
-		ignitionJson, err := Render(input, additionalConfig)
+		ignitionJson, err := Render(input, *additionalConfig.Ignition)
 		Expect(err).ToNot(HaveOccurred())
 
 		ign, reports, err := ignition.Parse(ignitionJson)
@@ -130,33 +136,9 @@ var _ = Describe("Render", func() {
 		Expect(ign.Systemd.Units[2].Enabled).To(Equal(pointer.Bool(true)))
 	})
 
-	It("accepts empty additional config", func() {
-		additionalConfig = nil
-		_, err := Render(input, additionalConfig)
-		Expect(err).ToNot(HaveOccurred())
-	})
-
 	It("should return error if input is nil", func() {
-		_, err := Render(nil, additionalConfig)
+		_, err := Render(nil, *additionalConfig.Ignition)
 		Expect(err).To(HaveOccurred())
 	})
 
-	It("treats warnings as errors in strict mode", func() {
-		// Should generate an Ignition warning about the colon in the partition label.
-		configWithIgnitionWarning := `
-storage:
-    - path: /var/lib/static_key_example
-      device: /dev/disk/by-id/dm-name-static-key-example
-      format: ext4
-      label: STATIC-EXAMPLE
-      with_mount_unit: true
-`
-		additionalConfig = &bootstrapv1.AdditionalUserData{
-			Config: configWithIgnitionWarning,
-			Strict: true,
-		}
-
-		_, err := Render(input, additionalConfig)
-		Expect(err).To(HaveOccurred())
-	})
 })

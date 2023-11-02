@@ -20,6 +20,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/coreos/butane/config/common"
+
+	fcos "github.com/coreos/butane/config/fcos/v1_4"
+	ignition "github.com/coreos/ignition/v2/config/v3_3"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -51,6 +55,11 @@ var _ = Describe("NewJoinWorker", func() {
 	var input *JoinWorkerInput
 
 	BeforeEach(func() {
+		ignBytes, _, err := fcos.ToIgn3_3Bytes([]byte(additionalIgnition), common.TranslateBytesOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		ign, _, err := ignition.Parse(ignBytes)
+		Expect(err).ToNot(HaveOccurred())
+
 		input = &JoinWorkerInput{
 			BaseUserData: &cloudinit.BaseUserData{
 				RKE2Version: "v1.21.3+rke2r1",
@@ -67,10 +76,7 @@ var _ = Describe("NewJoinWorker", func() {
 					Permissions: "0644",
 				},
 			},
-			AdditionalIgnition: &bootstrapv1.AdditionalUserData{
-				Config: additionalIgnition,
-				Strict: true,
-			},
+			Ignition: ign,
 		}
 	})
 
@@ -99,6 +105,11 @@ var _ = Describe("NewJoinControlPlane", func() {
 	var input *ControlPlaneInput
 
 	BeforeEach(func() {
+		ignBytes, _, err := fcos.ToIgn3_3Bytes([]byte(additionalIgnition), common.TranslateBytesOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		ign, _, err := ignition.Parse(ignBytes)
+		Expect(err).ToNot(HaveOccurred())
+
 		input = &ControlPlaneInput{
 			ControlPlaneInput: &cloudinit.ControlPlaneInput{
 				BaseUserData: cloudinit.BaseUserData{
@@ -117,10 +128,7 @@ var _ = Describe("NewJoinControlPlane", func() {
 					},
 				},
 			},
-			AdditionalIgnition: &bootstrapv1.AdditionalUserData{
-				Config: additionalIgnition,
-				Strict: true,
-			},
+			Ignition: ign,
 		}
 	})
 
@@ -149,6 +157,11 @@ var _ = Describe("NewInitControlPlane", func() {
 	var input *ControlPlaneInput
 
 	BeforeEach(func() {
+		ignBytes, _, err := fcos.ToIgn3_3Bytes([]byte(additionalIgnition), common.TranslateBytesOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		ign, _, err := ignition.Parse(ignBytes)
+		Expect(err).ToNot(HaveOccurred())
+
 		input = &ControlPlaneInput{
 			ControlPlaneInput: &cloudinit.ControlPlaneInput{
 				BaseUserData: cloudinit.BaseUserData{
@@ -167,10 +180,7 @@ var _ = Describe("NewInitControlPlane", func() {
 					},
 				},
 			},
-			AdditionalIgnition: &bootstrapv1.AdditionalUserData{
-				Config: additionalIgnition,
-				Strict: true,
-			},
+			Ignition: ign,
 		}
 	})
 

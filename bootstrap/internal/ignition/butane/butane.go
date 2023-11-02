@@ -29,7 +29,6 @@ import (
 	ignitionTypes "github.com/coreos/ignition/v2/config/v3_3/types"
 	"github.com/pkg/errors"
 
-	bootstrapv1 "github.com/rancher-sandbox/cluster-api-provider-rke2/bootstrap/api/v1alpha2"
 	"github.com/rancher-sandbox/cluster-api-provider-rke2/bootstrap/internal/cloudinit"
 )
 
@@ -246,7 +245,7 @@ func butaneToIgnition(data []byte, strict bool) (ignitionTypes.Config, error) {
 }
 
 // Render renders the provided user data and additional butane config into an Ignition config.
-func Render(input *cloudinit.BaseUserData, butaneCfg *bootstrapv1.AdditionalUserData) ([]byte, error) {
+func Render(input *cloudinit.BaseUserData, config ignitionTypes.Config) ([]byte, error) {
 	if input == nil {
 		return nil, errors.New("empty base user data")
 	}
@@ -261,14 +260,7 @@ func Render(input *cloudinit.BaseUserData, butaneCfg *bootstrapv1.AdditionalUser
 		return nil, errors.Wrap(err, "converting base config to Ignition")
 	}
 
-	if butaneCfg != nil && butaneCfg.Config != "" {
-		addCfg, err := butaneToIgnition([]byte(butaneCfg.Config), butaneCfg.Strict)
-		if err != nil {
-			return nil, errors.Wrap(err, "converting additional config to Ignition")
-		}
-
-		cfg = ignition.Merge(cfg, addCfg)
-	}
+	cfg = ignition.Merge(cfg, config)
 
 	userData, err := json.Marshal(cfg)
 	if err != nil {

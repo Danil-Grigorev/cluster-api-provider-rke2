@@ -19,8 +19,6 @@ package v1alpha2
 import (
 	"fmt"
 
-	"github.com/coreos/butane/config/common"
-	fcos "github.com/coreos/butane/config/fcos/v1_4"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -32,7 +30,7 @@ import (
 )
 
 var (
-	cannotUseWithIgnition = fmt.Sprintf("not supported when spec.format is set to %q", Ignition)
+	cannotUseWithIgnition = fmt.Sprintf("not supported when spec.format is set to %q", IgnitionConfig)
 	rke2configlog         = logf.Log.WithName("rke2config-resource")
 )
 
@@ -54,8 +52,8 @@ func (r *RKE2Config) Default() {
 
 // DefaultRKE2ConfigSpec defaults the RKE2ConfigSpec.
 func DefaultRKE2ConfigSpec(spec *RKE2ConfigSpec) {
-	if spec.AgentConfig.Format == "" {
-		spec.AgentConfig.Format = CloudConfig
+	if spec.AgentConfig.AdditionalUserData.Format == "" {
+		spec.AgentConfig.AdditionalUserData.Format = CloudConfig
 	}
 }
 
@@ -120,18 +118,14 @@ func (s *RKE2ConfigSpec) validate(pathPrefix *field.Path) field.ErrorList {
 func (s *RKE2ConfigSpec) validateIgnition(pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if s.AgentConfig.Format == Ignition {
-		_, reports, _ := fcos.ToIgn3_3Bytes([]byte(s.AgentConfig.AdditionalUserData.Config), common.TranslateBytesOptions{})
-		if (len(reports.Entries) > 0 && s.AgentConfig.AdditionalUserData.Strict) || reports.IsFatal() {
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					pathPrefix.Child("agentConfig.AdditionalUserData.Config"),
-					s.AgentConfig.AdditionalUserData.Config,
-					fmt.Sprintf("error parsing Butane config: %v", reports.String()),
-				),
-			)
-		}
+	if s.AgentConfig.AdditionalUserData.Format == IgnitionConfig && s.AgentConfig.AdditionalUserData.Ignition == nil {
+		allErrs = append(
+			allErrs,
+			field.Invalid(
+				pathPrefix.Child("agentConfig.AdditionalUserData.Ignition"),
+				s.AgentConfig.AdditionalUserData.Ignition,
+				"error parsing Butane config - field can't be empty."),
+		)
 	}
 
 	for i, file := range s.Files {

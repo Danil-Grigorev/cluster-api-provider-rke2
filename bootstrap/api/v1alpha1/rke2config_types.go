@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 )
 
 // Format specifies the output format of the bootstrap data
@@ -83,9 +84,13 @@ type RKE2AgentConfig struct {
 	//+optional
 	NodeNamePrefix string `json:"nodeName,omitempty"`
 
+	// Users specifies extra users to add
+	// +optional
+	Users []bootstrapv1.User `json:"users,omitempty"`
+
 	// NTP specifies NTP configuration
 	// +optional
-	NTP *NTP `json:"ntp,omitempty"`
+	NTP *bootstrapv1.NTP `json:"ntp,omitempty"`
 
 	// ImageCredentialProviderConfigMap is a reference to the ConfigMap that contains credential provider plugin config
 	// The config map should contain a key "credential-config.yaml" with YAML file content and
@@ -156,7 +161,7 @@ type RKE2AgentConfig struct {
 
 	// Format specifies the output format of the bootstrap data. Defaults to cloud-config.
 	// +optional
-	Format Format `json:"format,omitempty"`
+	Format bootstrapv1.Format `json:"format,omitempty"`
 
 	// AdditionalUserData is a field that allows users to specify additional cloud-init or ignition configuration to be included in the
 	// generated cloud-init/ignition script.
