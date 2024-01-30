@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/collections"
 
 	bootstrapv1 "github.com/rancher-sandbox/cluster-api-provider-rke2/bootstrap/api/v1beta1"
 	controlplanev1 "github.com/rancher-sandbox/cluster-api-provider-rke2/controlplane/api/v1beta1"
@@ -201,4 +202,20 @@ func ProfileCompliant(profile bootstrapv1.CISProfile, version string) bool {
 	default:
 		return false
 	}
+}
+
+func ReplaceWithNodeRef(m collections.Machines) collections.Machines {
+	machines := collections.New()
+	machinesWithNodes := collections.New()
+	for _, machine := range m.UnsortedList() {
+		if machine.Status.NodeRef != nil {
+			machinesWithNodes[machine.Status.NodeRef.Name] = machine
+		} else {
+			machines.Insert(machine)
+		}
+	}
+
+	machines.Insert(machinesWithNodes.UnsortedList()...)
+
+	return machines
 }

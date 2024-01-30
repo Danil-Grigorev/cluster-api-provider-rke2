@@ -47,7 +47,12 @@ func matchesRKE2BootstrapConfig(machineConfigs map[string]*bootstrapv1.RKE2Confi
 			return true
 		}
 
-		machineConfig, found := machineConfigs[machine.Name]
+		name := machine.Name
+		if machine.Status.NodeRef != nil {
+			name = machine.Status.NodeRef.Name
+		}
+
+		machineConfig, found := machineConfigs[name]
 		if !found {
 			// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
 			// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
@@ -93,7 +98,12 @@ func matchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructure
 			return false
 		}
 
-		infraObj, found := infraConfigs[machine.Name]
+		name := machine.Name
+		if machine.Status.NodeRef != nil {
+			name = machine.Status.NodeRef.Name
+		}
+
+		infraObj, found := infraConfigs[name]
 		if !found {
 			// Return true here because failing to get infrastructure machine should not be considered as unmatching.
 			return true

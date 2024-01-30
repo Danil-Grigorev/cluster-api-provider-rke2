@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/rancher-sandbox/cluster-api-provider-rke2/pkg/util"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -90,7 +91,7 @@ func (m *Management) GetMachinesForCluster(
 
 	machines := collections.FromMachineList(ml)
 
-	return machines.Filter(filters...), nil
+	return util.ReplaceWithNodeRef(machines).Filter(filters...), nil
 }
 
 const (
