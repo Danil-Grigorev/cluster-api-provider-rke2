@@ -27,11 +27,13 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -42,6 +44,7 @@ import (
 
 	controlplanev1 "github.com/rancher-sandbox/cluster-api-provider-rke2/controlplane/api/v1beta1"
 	"github.com/rancher-sandbox/cluster-api-provider-rke2/pkg/etcd"
+	"github.com/rancher-sandbox/cluster-api-provider-rke2/pkg/secret"
 )
 
 const (
@@ -89,19 +92,33 @@ func (m *Management) NewWorkload(ctx context.Context, cl client.Client, clusterK
 	restConfig = rest.CopyConfig(restConfig)
 	restConfig.Timeout = 30 * time.Second
 
+	client, err := m.Tracker.GetClient(ctx, clusterKey)
+	if err != nil {
+		return nil, &RemoteClusterConnectionError{Name: clusterKey.String(), Err: err}
+	}
+	externalCertificates := secret.Certificates{&secret.ExternalCertificate{
+		Reader:  m,
+		Purpose: secret.EtcdCA,
+	}}
+
+	if err := externalCertificates.LookupOrGenerate(ctx, client, clusterKey, metav1.OwnerReference{}); err != nil {
+		log.FromContext(ctx).Error(err, "unable to lookup or create cluster certificates")
+		return nil, err
+	}
+
 	// Retrieves the etcd CA key Pair
-	crtData, keyData, err := m.getEtcdCAKeyPair(ctx, clusterKey)
+	keyPair, err := m.getEtcdCAKeyPair(ctx, clusterKey)
 	if err != nil {
 		return nil, err
 	}
 
-	clientCert, err := tls.X509KeyPair(crtData, keyData)
+	clientCert, err := tls.X509KeyPair(keyPair.Cert, keyPair.Key)
 	if err != nil {
 		return nil, err
 	}
 
 	caPool := x509.NewCertPool()
-	caPool.AppendCertsFromPEM(crtData)
+	caPool.AppendCertsFromPEM(keyPair.Cert)
 	tlsConfig := &tls.Config{
 		RootCAs:            caPool,
 		Certificates:       []tls.Certificate{clientCert},

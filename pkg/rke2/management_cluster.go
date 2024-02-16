@@ -18,13 +18,12 @@ package rke2
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rancher-sandbox/cluster-api-provider-rke2/pkg/secret"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,6 +31,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
@@ -123,31 +123,25 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey ctrlclie
 	return m.NewWorkload(ctx, c, clusterKey)
 }
 
-func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey client.ObjectKey) ([]byte, []byte, error) {
-	etcdCASecret := &corev1.Secret{}
-	etcdCAObjectKey := client.ObjectKey{
-		Namespace: clusterKey.Namespace,
-		Name:      fmt.Sprintf("%s-etcd", clusterKey.Name),
+func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey client.ObjectKey) (*certs.KeyPair, error) {
+	etcd := &secret.ManagedCertificate{
+		Purpose: secret.EtcdCA,
 	}
 
 	// Try to get the certificate via the cached client.
-	err := m.Get(ctx, etcdCAObjectKey, etcdCASecret)
-	if err != nil {
+	s, err := etcd.Lookup(ctx, m.SecretCachingClient, clusterKey)
+	if err != nil || s == nil {
 		if !apierrors.IsNotFound(err) {
 			// Return error if we got an errors which is not a NotFound error.
-			return nil, nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
+			return nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcd.AsSecret(clusterKey, v1.OwnerReference{}).Namespace, etcd.AsSecret(clusterKey, v1.OwnerReference{}).Name)
 		}
 
 		// Try to get the certificate via the uncached client.
-		if err := m.Client.Get(ctx, etcdCAObjectKey, etcdCASecret); err != nil {
-			return nil, nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
+		s, err = etcd.Lookup(ctx, m.SecretCachingClient, clusterKey)
+		if err != nil || s == nil {
+			return nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcd.AsSecret(clusterKey, v1.OwnerReference{}).Namespace, etcd.AsSecret(clusterKey, v1.OwnerReference{}).Name)
 		}
 	}
 
-	crtData, ok := etcdCASecret.Data[secret.TLSCrtDataName]
-	if !ok {
-		return nil, nil, errors.Errorf("etcd tls crt does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)
-	}
-	keyData := etcdCASecret.Data[secret.TLSKeyDataName]
-	return crtData, keyData, nil
+	return etcd.KeyPair, nil
 }
