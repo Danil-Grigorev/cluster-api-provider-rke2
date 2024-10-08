@@ -214,6 +214,36 @@ func NewCertificatesForLegacyControlPlane() Certificates {
 	return certificates
 }
 
+// NewControlPlaneJoinCerts gets any certs that exist and writes them to disk.
+func NewControlPlaneJoinCerts() Certificates {
+	certificatesDir := DefaultCertificatesDir
+
+	certificates := Certificates{
+		&ManagedCertificate{
+			Purpose:  ClusterCA,
+			CertFile: filepath.Join(certificatesDir, "server-ca.crt"),
+			KeyFile:  filepath.Join(certificatesDir, "server-ca.key"),
+		},
+		&ManagedCertificate{
+			Purpose:  ClientClusterCA,
+			CertFile: filepath.Join(certificatesDir, "client-ca.crt"),
+			KeyFile:  filepath.Join(certificatesDir, "client-ca.key"),
+		},
+		&ManagedCertificate{
+			Purpose:  EtcdCA,
+			CertFile: filepath.Join(DefaultETCDCertificatesDir, "peer-ca.crt"),
+			KeyFile:  filepath.Join(DefaultETCDCertificatesDir, "peer-ca.key"),
+		},
+		&ManagedCertificate{
+			Purpose:  EtcdServerCA,
+			CertFile: filepath.Join(DefaultETCDCertificatesDir, "server-ca.crt"),
+			KeyFile:  filepath.Join(DefaultETCDCertificatesDir, "server-ca.key"),
+		},
+	}
+
+	return certificates
+}
+
 // GetByPurpose returns a certificate by the given name.
 // This could be removed if we use a map instead of a slice to hold certificates, however other code becomes more complex.
 func (c Certificates) GetByPurpose(purpose Purpose) Certificate {

@@ -25,6 +25,7 @@ import (
 // nolint:gofumpt
 func NewJoinControlPlane(input *ControlPlaneInput) ([]byte, error) {
 	input.Header = cloudConfigHeader
+	input.WriteFiles = append(input.WriteFiles, input.Certificates.AsFiles()...)
 	input.WriteFiles = append(input.WriteFiles, input.ConfigFile)
 	input.SentinelFileCommand = sentinelFileCommand
 

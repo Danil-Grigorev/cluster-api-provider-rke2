@@ -684,6 +684,20 @@ func (r *RKE2ConfigReconciler) joinControlplane(ctx context.Context, scope *Scop
 		ntpServers = scope.Config.Spec.AgentConfig.NTP.Servers
 	}
 
+	certificates := secret.NewControlPlaneJoinCerts()
+	err = certificates.LookupOrGenerate(
+		ctx,
+		r.Client,
+		util.ObjectKey(scope.Cluster),
+		*metav1.NewControllerRef(scope.Config, bootstrapv1.GroupVersion.WithKind("RKE2Config")),
+	)
+	if err != nil {
+		conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		return ctrl.Result{}, err
+	}
+
+	conditions.MarkTrue(scope.Config, bootstrapv1.CertificatesAvailableCondition)
+
 	cpinput := &cloudinit.ControlPlaneInput{
 		BaseUserData: cloudinit.BaseUserData{
 			AirGapped:           scope.Config.Spec.AgentConfig.AirGapped,
@@ -697,6 +711,7 @@ func (r *RKE2ConfigReconciler) joinControlplane(ctx context.Context, scope *Scop
 			NTPServers:          ntpServers,
 			AdditionalCloudInit: scope.Config.Spec.AgentConfig.AdditionalUserData.Config,
 		},
+		Certificates: certificates,
 	}
 
 	var userData []byte
