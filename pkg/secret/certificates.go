@@ -181,13 +181,13 @@ func NewCertificatesForInitialControlPlane() Certificates {
 		},
 		&ManagedCertificate{
 			Purpose:  EtcdCA,
-			CertFile: filepath.Join(DefaultETCDCertificatesDir, "peer-ca.crt"),
-			KeyFile:  filepath.Join(DefaultETCDCertificatesDir, "peer-ca.key"),
+			CertFile: filepath.Join(DefaultETCDCertificatesDir, "peer-ca-copy.crt"),
+			KeyFile:  filepath.Join(DefaultETCDCertificatesDir, "peer-ca-copy.key"),
 		},
 		&ManagedCertificate{
 			Purpose:  EtcdServerCA,
-			CertFile: filepath.Join(DefaultETCDCertificatesDir, "server-ca.crt"),
-			KeyFile:  filepath.Join(DefaultETCDCertificatesDir, "server-ca.key"),
+			CertFile: filepath.Join(DefaultETCDCertificatesDir, "server-ca-copy.crt"),
+			KeyFile:  filepath.Join(DefaultETCDCertificatesDir, "server-ca-copy.key"),
 		},
 	}
 
@@ -231,13 +231,13 @@ func NewControlPlaneJoinCerts() Certificates {
 		},
 		&ManagedCertificate{
 			Purpose:  EtcdCA,
-			CertFile: filepath.Join(DefaultETCDCertificatesDir, "peer-ca.crt"),
-			KeyFile:  filepath.Join(DefaultETCDCertificatesDir, "peer-ca.key"),
+			CertFile: filepath.Join(DefaultETCDCertificatesDir, "peer-ca-copy.crt"),
+			KeyFile:  filepath.Join(DefaultETCDCertificatesDir, "peer-ca-copy.key"),
 		},
 		&ManagedCertificate{
 			Purpose:  EtcdServerCA,
-			CertFile: filepath.Join(DefaultETCDCertificatesDir, "server-ca.crt"),
-			KeyFile:  filepath.Join(DefaultETCDCertificatesDir, "server-ca.key"),
+			CertFile: filepath.Join(DefaultETCDCertificatesDir, "server-ca-copy.crt"),
+			KeyFile:  filepath.Join(DefaultETCDCertificatesDir, "server-ca-copy.key"),
 		},
 	}
 
